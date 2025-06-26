@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OIDC Callback</title>
+    <script>
+        function getTargetUrl() {
+            const currentUrl = new URL(window.location.href);
+
+            let pathSegments = currentUrl.pathname.split('/').filter(Boolean); 
+            pathSegments.pop(); 
+
+            let newPathname = '/' + pathSegments.join('/'); 
+            if (newPathname === '//') { 
+                newPathname = '/';
+            }
+
+            currentUrl.pathname = newPathname;
+
+            currentUrl.search = '';
+            currentUrl.hash = '';
+
+            const desiredLocation = currentUrl.href;
+            return desiredLocation;
+        }
+
+        (function() {
+            const targetUrl = getTargetUrl();
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const code = params.get('code');
+                const error = params.get('error');
+                const errorDescription = params.get('error_description');
+                const state = params.get('state');
+
+                if (code) {
+                    sessionStorage.setItem('oidc_auth_code', code);
+                }
+                if (error) {
+                    sessionStorage.setItem('oidc_auth_error', error);
+                    if (errorDescription) {
+                        sessionStorage.setItem('oidc_auth_error_description', errorDescription);
+                    }
+                }
+                if (state) {
+                    sessionStorage.setItem('oidc_auth_state', state);
+                }
+
+                const hashRoute = '#/oidc-process-auth'; 
+                window.location.replace(targetUrl + hashRoute);
+
+            } catch (e) {
+                console.error("Error in OIDC callback HTML:", e);
+                const errorHashRoute = '/#/login?error=oidc_callback_failed';
+                sessionStorage.setItem('oidc_auth_error', 'callback_processing_error');
+                sessionStorage.setItem('oidc_auth_error_description', 'Failed to process OIDC callback parameters.');
+                window.location.replace(targetUrl + errorHashRoute);
+            }
+        })();
+    </script>
+</head>
+<body>
+    <p>Processing login, please wait...</p>
+</body>
+</html>

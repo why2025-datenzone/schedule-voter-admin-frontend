@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/static/admin/images/vote.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule voter admin frontend</title>
+  </head>
+  <body>
+    <div id="root" 
+         data-api-base-url="%VITE_APIPREFIX%"
+         data-oidc-provider-url="%VITE_PROVIDER_URL%" 
+         data-oidc-client-id="%VITE_CLIENT_ID%"
+         data-oidc-redirect-path="%VITE_CALLBACK_URL%"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
