@@ -20,6 +20,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { IconRotate, IconAlertTriangle, IconChevronDown, IconChevronUp, IconChevronsDown } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
+import { SimilarSubmissionsDialog } from './SimilarSubmissionsDialog';
 
 import {
   ColumnDef,
@@ -97,6 +98,7 @@ export function Conflicts() {
     const [sliderValue, setSliderValue] = useState<number>(initialConflictCount);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
 
     const {
         data: conflictsData,
@@ -147,7 +149,15 @@ export function Conflicts() {
         { 
             accessorKey: 'subATitle', 
             header: ({ column }) => createSortableHeader(column, 'Title (A)'),
-            cell: info => <div className="line-clamp-2" title={info.getValue() as string}>{info.getValue() as string ?? '-'}</div>,
+            cell: info => (
+                <div 
+                    className="line-clamp-2 cursor-pointer hover:underline" 
+                    title={info.getValue() as string}
+                    onClick={() => setSelectedSubmissionId(info.row.original.subAId)}
+                >
+                    {info.getValue() as string ?? '-'}
+                </div>
+            ),
             size: 250, minSize: 150,
         },
         { 
@@ -159,7 +169,15 @@ export function Conflicts() {
         { 
             accessorKey: 'subBTitle', 
             header: ({ column }) => createSortableHeader(column, 'Title (B)'),
-            cell: info => <div className="line-clamp-2" title={info.getValue() as string}>{info.getValue() as string ?? '-'}</div>,
+            cell: info => (
+                <div 
+                    className="line-clamp-2 cursor-pointer hover:underline" 
+                    title={info.getValue() as string}
+                    onClick={() => setSelectedSubmissionId(info.row.original.subBId)}
+                >
+                    {info.getValue() as string ?? '-'}
+                </div>
+            ),
             size: 250, minSize: 150,
         },
         { 
@@ -195,6 +213,15 @@ export function Conflicts() {
             };
         });
     }, [conflictsData, submissionsResponse, selectedConflictType]);
+
+    const submissionsMap = useMemo(() => submissionsResponse?.submissions, [submissionsResponse]);
+
+    const selectedSubmissionForDialog = useMemo(() => {
+        if (!selectedSubmissionId || !submissionsMap) return null;
+        const detail = submissionsMap[selectedSubmissionId];
+        if (!detail) return null;
+        return { id: selectedSubmissionId, ...detail };
+    }, [selectedSubmissionId, submissionsMap]);
 
     const table = useReactTable({
         data: tableData,
@@ -352,6 +379,15 @@ export function Conflicts() {
                     )}
                 </CardContent>
             </Card>
+            {selectedSubmissionForDialog && submissionsMap && (
+                <SimilarSubmissionsDialog
+                    open={!!selectedSubmissionForDialog}
+                    onOpenChange={(isOpen) => !isOpen && setSelectedSubmissionId(null)}
+                    eventSlug={eventSlug!}
+                    submission={selectedSubmissionForDialog}
+                    allSubmissions={submissionsMap}
+                />
+            )}
         </div>
     );
 }

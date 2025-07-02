@@ -7,12 +7,15 @@ import { Skeleton } from "./ui/skeleton";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button"; 
 import { RotateCw } from "lucide-react";
+import { SimilarSubmissionsDialog } from './SimilarSubmissionsDialog';
 
-const SubmissionCard = ({ submission }: { submission: SubmissionDetail }) => {
+const SubmissionCard = ({ submission, onTitleClick }: { submission: SubmissionDetail; onTitleClick: () => void; }) => {
     return (
         <Card className="w-full flex flex-col">
             <CardHeader>
-                <CardTitle className="line-clamp-2">{submission.title}</CardTitle>
+                <CardTitle className="line-clamp-2 cursor-pointer hover:underline" onClick={onTitleClick}>
+                    {submission.title}
+                </CardTitle>
                 {submission.code && <CardDescription>Code: {submission.code}</CardDescription>}
             </CardHeader>
             <CardContent className="flex-grow">
@@ -52,6 +55,7 @@ export function Submissions() {
     const { activeConference } = useConferenceStore();
     const eventSlug = activeConference?.slug;
     const [filterText, setFilterText] = useState('');
+    const [selectedSubmission, setSelectedSubmission] = useState<{ id: string, detail: SubmissionDetail } | null>(null);
 
     const { 
         data: submissionsResponse, 
@@ -174,13 +178,26 @@ export function Submissions() {
             ) : (
                 <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${isRefetching ? 'opacity-50 pointer-events-none' : ''}`}>
                     {filteredSubmissions.map(([id, submissionDetail]) => (
-                        <SubmissionCard key={id} submission={submissionDetail} />
+                        <SubmissionCard 
+                            key={id} 
+                            submission={submissionDetail} 
+                            onTitleClick={() => setSelectedSubmission({ id, detail: submissionDetail })}
+                        />
                     ))}
                 </div>
             )}
              {isRefetching && !isLoading && (
                 <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
                 </div>
+            )}
+            {selectedSubmission && submissionsResponse?.submissions && (
+                <SimilarSubmissionsDialog
+                    open={!!selectedSubmission}
+                    onOpenChange={(isOpen) => !isOpen && setSelectedSubmission(null)}
+                    eventSlug={eventSlug!}
+                    submission={{ id: selectedSubmission.id, ...selectedSubmission.detail }}
+                    allSubmissions={submissionsResponse.submissions}
+                />
             )}
         </div>
     );

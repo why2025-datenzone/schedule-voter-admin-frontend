@@ -17,11 +17,12 @@ import {
   UpdateEventDetailsPayload,
   LoginPayload,
   LoginResponse,
-  OidcExchangePayload, 
-  OidcExchangeResponse, 
+  OidcExchangePayload,
+  OidcExchangeResponse,
+  SimilarityResponse,
 } from './types';
 import { handleApiUnauthorized } from '@/store/authStore';
-import { getApiBaseUrl } from '@/config/appConfig'; 
+import { getApiBaseUrl } from '@/config/appConfig';
 
 const getToken = (): string | null => {
   try {
@@ -40,9 +41,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const API_BASE_URL = getApiBaseUrl();
   if (response.status === 401) {
     const isLoginOrExchange = response.url.endsWith(`${API_BASE_URL}/login`) || response.url.endsWith(`${API_BASE_URL}/exchange`);
-    if (!isLoginOrExchange) { 
-        handleApiUnauthorized(); 
-        throw new Error('Unauthorized. Session expired or invalid. Please login again.');
+    if (!isLoginOrExchange) {
+      handleApiUnauthorized();
+      throw new Error('Unauthorized. Session expired or invalid. Please login again.');
     }
   }
   if (!response.ok) {
@@ -55,8 +56,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
     const errorMessage = errorPayload?.message ?? errorPayload?.detail ?? `API Error: ${response.status} ${response.statusText}`;
     throw new Error(errorMessage);
   }
-  if (response.status === 204) { 
-    return {} as T; 
+  if (response.status === 204) {
+    return {} as T;
   }
   return response.json() as Promise<T>;
 }
@@ -65,14 +66,14 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
   const API_BASE_URL = getApiBaseUrl();
   const token = getToken();
   const headers = new Headers(options.headers || {});
-  
+
   const isLoginOrExchange = url.endsWith(`${API_BASE_URL}/login`) || url.endsWith(`${API_BASE_URL}/exchange`);
-  if (token && !isLoginOrExchange) { 
+  if (token && !isLoginOrExchange) {
     headers.append('Authorization', `Bearer ${token}`);
   }
 
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
-     headers.append('Content-Type', 'application/json');
+    headers.append('Content-Type', 'application/json');
   }
 
   return fetch(url, { ...options, headers });
@@ -121,7 +122,7 @@ export async function updateOrCreateSource(
 
 export async function deleteSource(
   eventSlug: string,
-  sourceId: string | number 
+  sourceId: string | number
 ): Promise<void> {
   const API_BASE_URL = getApiBaseUrl();
   const url = `${API_BASE_URL}/sources/${eventSlug}/${sourceId}`;
@@ -131,14 +132,14 @@ export async function deleteSource(
   if (response.status === 204) {
     return Promise.resolve();
   }
-  return handleResponse<void>(response); 
+  return handleResponse<void>(response);
 }
 
 export async function updateEventUserPermissions(
   eventSlug: string,
   userId: string,
   payload: UpdateEventUserPermissionsPayload
-): Promise<void> { 
+): Promise<void> {
   const API_BASE_URL = getApiBaseUrl();
   const response = await fetchWithAuth(`${API_BASE_URL}/users/${eventSlug}/${userId}`, {
     method: 'POST',
@@ -150,12 +151,31 @@ export async function updateEventUserPermissions(
 export type HookOptions<
   TQueryFnData,
   TError = Error,
-  TData = TQueryFnData, 
+  TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
 > = Omit<
   TanstackUseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
   'queryKey' | 'queryFn'
 >;
+
+export function useSimilarSubmissions(
+  eventSlug: string,
+  submissionId: string,
+  conflictType: ConflictType,
+  count: number,
+  options?: HookOptions<SimilarityResponse, Error, SimilarityResponse, ['similarities', string, string, ConflictType, number]>
+): UseQueryResult<SimilarityResponse, Error> {
+  return useQuery<SimilarityResponse, Error, SimilarityResponse, ['similarities', string, string, ConflictType, number]>({
+    queryKey: ['similarities', eventSlug, submissionId, conflictType, count],
+    queryFn: async () => {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetchWithAuth(`${API_BASE_URL}/similarities/${eventSlug}/${encodeURIComponent(submissionId)}/${conflictType}/${count}`);
+      return handleResponse<SimilarityResponse>(response);
+    },
+    enabled: !!eventSlug && !!submissionId && !!conflictType && count > 0,
+    ...options,
+  });
+}
 
 export function useEvents<TSelectedData = EventsResponse>(
   options?: HookOptions<EventsResponse, Error, TSelectedData, ['events']>
@@ -258,9 +278,9 @@ export function useEventSourceUpdateUrls(
   options?: HookOptions<EventSourceUpdateUrlsResponse, Error, EventSourceUpdateUrlsResponse, ['eventSourceUpdateUrls', string | undefined]>
 ): UseQueryResult<EventSourceUpdateUrlsResponse, Error> {
   return useQuery<
-    EventSourceUpdateUrlsResponse, 
-    Error, 
-    EventSourceUpdateUrlsResponse, 
+    EventSourceUpdateUrlsResponse,
+    Error,
+    EventSourceUpdateUrlsResponse,
     ['eventSourceUpdateUrls', string | undefined]
   >({
     queryKey: ['eventSourceUpdateUrls', eventSlug],
@@ -269,7 +289,7 @@ export function useEventSourceUpdateUrls(
       const response = await fetchWithAuth(`${API_BASE_URL}/urls/${eventSlug}`);
       return handleResponse<EventSourceUpdateUrlsResponse>(response);
     },
-    enabled: !!eventSlug, 
+    enabled: !!eventSlug,
     ...options,
   });
 }
@@ -320,7 +340,7 @@ export function useSearchUsers(
 
 export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
   const API_BASE_URL = getApiBaseUrl();
-  const response = await fetchWithAuth(`${API_BASE_URL}/login`, { 
+  const response = await fetchWithAuth(`${API_BASE_URL}/login`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });

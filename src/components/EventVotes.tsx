@@ -45,6 +45,7 @@ import {
 } from '@tabler/icons-react';
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SimilarSubmissionsDialog } from './SimilarSubmissionsDialog';
 
 const formatTimestamp = (timestamp: string | number | undefined): string => {
   if (timestamp === undefined || timestamp === null || String(timestamp).trim() === "") return 'N/A';
@@ -170,6 +171,7 @@ export function Votes() {
   const [rowSelection, setRowSelection] = useState({});
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'refreshing' | 'error'>('idle');
+  const [selectedSubmissionForSimilarity, setSelectedSubmissionForSimilarity] = useState<SubmissionRowData | null>(null);
 
 
   useEffect(() => {
@@ -212,7 +214,15 @@ export function Votes() {
     {
       accessorKey: "title",
       header: ({ column }) => createSortableHeader(column, "Title"),
-      cell: ({ row }) => <div className="text-left line-clamp-3" title={row.getValue("title")}>{row.getValue("title")}</div>,
+      cell: ({ row }) => (
+        <div 
+            className="text-left line-clamp-3 cursor-pointer hover:underline" 
+            title={row.getValue("title")}
+            onClick={() => setSelectedSubmissionForSimilarity(row.original)}
+        >
+            {row.getValue("title")}
+        </div>
+      ),
       enableSorting: true,
       size: 350,
       minSize: 50,
@@ -560,6 +570,15 @@ export function Votes() {
           <span className="ml-2 italic">(Updating data...)</span>
         )}
       </div>
+      {selectedSubmissionForSimilarity && submissionsResponse?.submissions && (
+        <SimilarSubmissionsDialog
+            open={!!selectedSubmissionForSimilarity}
+            onOpenChange={(isOpen) => !isOpen && setSelectedSubmissionForSimilarity(null)}
+            eventSlug={eventSlug!}
+            submission={selectedSubmissionForSimilarity}
+            allSubmissions={submissionsResponse.submissions}
+        />
+      )}
     </div>
   );
 }

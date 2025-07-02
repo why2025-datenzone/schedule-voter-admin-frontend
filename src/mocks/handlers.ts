@@ -20,7 +20,8 @@ import {
   LoginResponse, 
   DEFAULT_SOURCE_FILTER,
   OidcExchangeResponse,
-  OidcExchangePayload, // ++ Import DEFAULT_SOURCE_FILTER ++
+  OidcExchangePayload,
+  SimilarityResponse, // ++ Import DEFAULT_SOURCE_FILTER ++
 } from '../api/types'; 
 import type {
   EventInternalData,
@@ -300,6 +301,40 @@ export const handlers = [
     }
     const conflicts = event.conflicts[conflictType].slice(0, count);
     return HttpResponse.json(conflicts);
+  }),
+
+  http.get('/api/similarities/:eventSlug/:submissionId/:type/:n', ({ params }) => {
+    const eventOrError = getEventOr404(params.eventSlug, db);
+    if (eventOrError instanceof HttpResponse) return eventOrError;
+    const event = eventOrError;
+
+    const { submissionId, n } = params;
+    const count = parseInt(n as string, 10);
+
+    const allSubmissionIds = Object.keys(event.submissions);
+    // Filter out the submissionId we are getting similarities for
+    const otherSubmissions = allSubmissionIds.filter(id => id !== submissionId);
+
+    if (otherSubmissions.length === 0) {
+        return HttpResponse.json<SimilarityResponse>([]);
+    }
+    
+    // Create a deterministic-ish but varied list for mocking
+    const shuffled = [...otherSubmissions].sort((a, b) => {
+        const hashA = a.charCodeAt(0) + a.charCodeAt(3);
+        const hashB = b.charCodeAt(0) + b.charCodeAt(3);
+        return (hashA % 10) - (hashB % 10);
+    });
+
+    const similarSubmissions: SimilarityResponse = shuffled
+        .slice(0, count)
+        .map(id => ({
+            id,
+            metric: Math.random() * 0.4 + 0.55 // a metric between 0.55 and 0.95
+        }))
+        .sort((a, b) => b.metric - a.metric);
+
+    return HttpResponse.json(similarSubmissions);
   }),
 
   http.get('/api/urls/:eventSlug', ({ params }) => {

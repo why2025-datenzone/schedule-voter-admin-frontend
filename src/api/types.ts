@@ -111,6 +111,13 @@ export interface ConflictItem {
 
 export type ConflictsResponse = ConflictItem[];
 
+export interface SimilarityItem {
+id: string; // submission ID
+metric: number;
+}
+
+export type SimilarityResponse = SimilarityItem[];
+
 // Optional: A general error structure if your API returns structured errors
 export interface ApiError {
   message: string;
@@ -188,3 +195,4 @@ export interface OidcExchangePayload {
 // OidcExchangeResponse can be the same as LoginResponse if the backend
 // returns the same token structure.
 export type OidcExchangeResponse = LoginResponse;
+
