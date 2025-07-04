@@ -42,7 +42,7 @@ export function initializeAppConfig(): void {
     console.warn('API base URL not found in data attribute on #root. Falling back to "/api".');
   }
 
-  const oidcProviderUrl = rootElement.dataset.oidcProviderUrl?.replace(/\/$/, '');
+  const oidcProviderUrl = rootElement.dataset.oidcProviderUrl; // ?.replace(/\/$/, '');
   const oidcClientId = rootElement.dataset.oidcClientId;
   const oidcRedirectPath = rootElement.dataset.oidcRedirectPath || '/oidc-callback.html';
 
