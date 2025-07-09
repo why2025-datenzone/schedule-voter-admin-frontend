@@ -56,6 +56,8 @@ export interface SourceItemData { // Data part of the source, ID will be the key
   eventSlug: string;
   interval: number;
   filter: SourceFilterType; // ++ Added filter property ++
+  submissionTypes: Record<string, string> | null;
+  typeFilter: number[];
 }
 
 export interface EventSourcesResponse {
@@ -71,6 +73,7 @@ export interface SourceCreateUpdatePayload {
   key?: string;
   apikey?: string;
   filter?: SourceFilterType; // ++ Added filter property ++
+  typeFilter?: number[];
 }
 
 export interface RatingItem {

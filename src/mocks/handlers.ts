@@ -1,4 +1,3 @@
-// src/mocks/handlers.ts
 import { http, HttpResponse } from 'msw';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './db';
@@ -210,6 +209,8 @@ export const handlers = [
         eventSlug: internalSource.eventSlug,
         interval: internalSource.interval,
         filter: internalSource.filter || DEFAULT_SOURCE_FILTER, // Ensure filter is present, default if not
+        submissionTypes: internalSource.submissionTypes,
+        typeFilter: internalSource.typeFilter,
       };
     }
     return HttpResponse.json(responseSources);
@@ -238,7 +239,8 @@ export const handlers = [
         ...(payload.url !== undefined && { url: payload.url }),
         ...(payload.eventSlug !== undefined && { eventSlug: payload.eventSlug }),
         ...(payload.interval !== undefined && { interval: payload.interval }),
-        ...(payload.filter !== undefined && { filter: payload.filter }), // Update filter
+        ...(payload.filter !== undefined && { filter: payload.filter }),
+        ...(payload.typeFilter !== undefined && { typeFilter: payload.typeFilter }),
       };
     } else { // New source
       event.sources[sourceId] = {
@@ -246,7 +248,9 @@ export const handlers = [
         url: payload.url ?? '',
         eventSlug: payload.eventSlug ?? '',
         interval: payload.interval ?? 300,
-        filter: payload.filter ?? DEFAULT_SOURCE_FILTER, // Set filter, default if not provided
+        filter: payload.filter ?? DEFAULT_SOURCE_FILTER,
+        submissionTypes: null, // New sources are created without predefined submission types
+        typeFilter: payload.typeFilter ?? [],
       };
       httpStatus = 201;
       event.overview.total_sources = (event.overview.total_sources ?? 0) + 1;
@@ -258,7 +262,9 @@ export const handlers = [
       url: responseData.url,
       eventSlug: responseData.eventSlug,
       interval: responseData.interval,
-      filter: responseData.filter, // Include filter in response
+      filter: responseData.filter,
+      submissionTypes: responseData.submissionTypes,
+      typeFilter: responseData.typeFilter,
       ...(payload.key && { key: payload.key }),
     };
     return HttpResponse.json(response, { status: httpStatus });

@@ -1,5 +1,3 @@
-// src/api/types.ts
-
 export type EventRole = "admin" | "viewer" | "user";
 
 export interface EventPermissions {
@@ -59,7 +57,9 @@ export interface SourceDetail {
   url: string;
   eventSlug: string;
   interval: number; // in seconds
-  filter: SourceFilterType; // ++ Added filter property ++
+  filter: SourceFilterType;
+  submissionTypes: Record<string, string> | null;
+  typeFilter: number[];
 }
 
 
@@ -75,7 +75,8 @@ export interface UpdateCreateSourcePayload {
   interval?: number;
   key?: string;
   apikey?: string; // Must be present if url is present
-  filter?: SourceFilterType; // ++ Added filter property (optional) ++
+  filter?: SourceFilterType;
+  typeFilter?: number[];
 }
 
 // Assuming API returns the updated/created source with its ID
@@ -86,7 +87,9 @@ export interface UpdatedCreatedSourceResponse extends Partial<SourceDetail> {
     autoupdate: boolean;
     url: string;
     interval: number;
-    filter: SourceFilterType; // ++ Added filter property ++
+    filter: SourceFilterType;
+    submissionTypes: Record<string, string> | null;
+    typeFilter: number[];
 }
 
 
@@ -195,4 +198,3 @@ export interface OidcExchangePayload {
 // OidcExchangeResponse can be the same as LoginResponse if the backend
 // returns the same token structure.
 export type OidcExchangeResponse = LoginResponse;
-

@@ -49,12 +49,15 @@ interface EditableSourceUI extends SourceDetail {
   currentAutoupdate: boolean;
   currentInterval: number;
   currentFilter: SourceFilterType; 
+  currentTypeFilter: number[];
+  currentTypeFilterAsString: string; // For controlled input
   apiKey: string; 
   _originalUrl: string;
   _originalEventSlug: string;
   _originalAutoupdate: boolean;
   _originalInterval: number;
   _originalFilter: SourceFilterType; 
+  _originalTypeFilter: number[];
   errors: Record<string, string>;
   isSaving: boolean;
   isDeleting: boolean;
@@ -104,30 +107,37 @@ export function EventConfigureSources() {
     autoupdate: false,
     interval: DEFAULT_INTERVAL,
     filter: DEFAULT_SOURCE_FILTER,
+    typeFilter: '',
   });
   const [newSourceFormErrors, setNewSourceFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (initialApiSources) {
-      const transformedSources: EditableSourceUI[] = Object.entries(initialApiSources).map(([idStr, detail]) => ({
-        ...detail,
-        id: idStr,
-        name: `Source (ID: ${idStr})`,
-        currentUrl: detail.url || '',
-        currentEventSlug: detail.eventSlug || '',
-        currentAutoupdate: detail.autoupdate,
-        currentInterval: detail.interval || DEFAULT_INTERVAL,
-        currentFilter: detail.filter || DEFAULT_SOURCE_FILTER, 
-        apiKey: '', 
-        _originalUrl: detail.url || '',
-        _originalEventSlug: detail.eventSlug || '',
-        _originalAutoupdate: detail.autoupdate,
-        _originalInterval: detail.interval || DEFAULT_INTERVAL,
-        _originalFilter: detail.filter || DEFAULT_SOURCE_FILTER, 
-        errors: {},
-        isSaving: false,
-        isDeleting: false,
-      }));
+      const transformedSources: EditableSourceUI[] = Object.entries(initialApiSources).map(([idStr, detail]) => {
+        const sortedTypeFilter = [...(detail.typeFilter || [])].sort((a, b) => a - b);
+        return {
+            ...detail,
+            id: idStr,
+            name: `Source (ID: ${idStr})`,
+            currentUrl: detail.url || '',
+            currentEventSlug: detail.eventSlug || '',
+            currentAutoupdate: detail.autoupdate,
+            currentInterval: detail.interval || DEFAULT_INTERVAL,
+            currentFilter: detail.filter || DEFAULT_SOURCE_FILTER,
+            currentTypeFilter: sortedTypeFilter,
+            currentTypeFilterAsString: sortedTypeFilter.join(', '),
+            apiKey: '', 
+            _originalUrl: detail.url || '',
+            _originalEventSlug: detail.eventSlug || '',
+            _originalAutoupdate: detail.autoupdate,
+            _originalInterval: detail.interval || DEFAULT_INTERVAL,
+            _originalFilter: detail.filter || DEFAULT_SOURCE_FILTER,
+            _originalTypeFilter: sortedTypeFilter,
+            errors: {},
+            isSaving: false,
+            isDeleting: false,
+        }
+      });
       setEditableSources(produce(transformedSources, draft => {
         draft.forEach(s => { s.errors = validateEditableSource(s); });
       }));
@@ -153,23 +163,27 @@ export function EventConfigureSources() {
       queryClient.invalidateQueries({ queryKey: ['sources', variables.eventSlug] });
       
       if (variables.isNew) {
-        setNewSourceForm({ slug: '', url: '', eventSlug: '', apiKey: '', autoupdate: false, interval: DEFAULT_INTERVAL, filter: DEFAULT_SOURCE_FILTER }); 
+        setNewSourceForm({ slug: '', url: '', eventSlug: '', apiKey: '', autoupdate: false, interval: DEFAULT_INTERVAL, filter: DEFAULT_SOURCE_FILTER, typeFilter: '' }); 
         setNewSourceFormErrors({});
       } else {
         const idToUpdate = variables.originalSourceIdForState || (typeof data.id === 'number' ? String(data.id) : data.id);
         setEditableSources(produce(draft => {
           const source = draft.find(s => s.id === idToUpdate);
           if (source) {
+            const sortedTypeFilter = [...(data.typeFilter || [])].sort((a, b) => a - b);
             source._originalUrl = data.url || '';
             source._originalEventSlug = data.eventSlug || '';
             source._originalAutoupdate = data.autoupdate;
             source._originalInterval = data.interval;
-            source._originalFilter = data.filter; 
+            source._originalFilter = data.filter;
+            source._originalTypeFilter = sortedTypeFilter;
             source.currentUrl = data.url || '';
             source.currentEventSlug = data.eventSlug || '';
             source.currentAutoupdate = data.autoupdate;
             source.currentInterval = data.interval;
-            source.currentFilter = data.filter; 
+            source.currentFilter = data.filter;
+            source.currentTypeFilter = sortedTypeFilter;
+            source.currentTypeFilterAsString = sortedTypeFilter.join(', ');
             source.apiKey = '';
             source.isSaving = false;
             source.errors = validateEditableSource(source);
@@ -299,6 +313,15 @@ export function EventConfigureSources() {
       return;
     }
 
+    const typeFilterNumbers = Array.from(new Set(newSourceForm.typeFilter
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s !== '')
+      .map(s => parseInt(s, 10))
+      .filter(n => !isNaN(n))
+    )).sort((a,b) => a - b);
+
+
     const payload: UpdateCreateSourcePayload = {
       autoupdate: newSourceForm.autoupdate,
       interval: newSourceForm.autoupdate ? newSourceForm.interval : undefined,
@@ -306,6 +329,7 @@ export function EventConfigureSources() {
       eventSlug: newSourceForm.eventSlug || undefined,
       apikey: (newSourceForm.url || newSourceForm.eventSlug) ? newSourceForm.apiKey : undefined,
       filter: newSourceForm.filter, 
+      typeFilter: typeFilterNumbers.length > 0 ? typeFilterNumbers : undefined,
     };
     updateSourceMutation.mutate({ 
       eventSlug: eventSlugFromScope, 
@@ -335,7 +359,8 @@ export function EventConfigureSources() {
     const eventSlugChanged = source.currentEventSlug !== source._originalEventSlug;
     const autoupdateChanged = source.currentAutoupdate !== source._originalAutoupdate;
     const intervalChanged = source.currentInterval !== source._originalInterval;
-    const filterChanged = source.currentFilter !== source._originalFilter; 
+    const filterChanged = source.currentFilter !== source._originalFilter;
+    const typeFilterChanged = JSON.stringify(source.currentTypeFilter) !== JSON.stringify(source._originalTypeFilter);
 
     if (urlChanged) {
         payload.url = source.currentUrl;
@@ -355,6 +380,9 @@ export function EventConfigureSources() {
     }
     if (filterChanged) { 
         payload.filter = source.currentFilter;
+    }
+    if (typeFilterChanged) {
+        payload.typeFilter = source.currentTypeFilter;
     }
 
 
@@ -456,11 +484,13 @@ export function EventConfigureSources() {
           {editableSources.map((source) => {
             const urlChanged = source.currentUrl !== source._originalUrl;
             const eventSlugChanged = source.currentEventSlug !== source._originalEventSlug;
+            const typeFilterChanged = JSON.stringify(source.currentTypeFilter) !== JSON.stringify(source._originalTypeFilter);
             const isSourceDirty = urlChanged || 
                                   eventSlugChanged ||
                                   source.currentAutoupdate !== source._originalAutoupdate ||
                                   source.currentInterval !== source._originalInterval ||
                                   source.currentFilter !== source._originalFilter ||
+                                  typeFilterChanged ||
                                   ((urlChanged || eventSlugChanged) && source.apiKey); 
             const isSourceValid = Object.keys(source.errors).length === 0;
             const individualSaveDisabled = !isSourceDirty || !isSourceValid || source.isSaving || updateSourceMutation.isPending;
@@ -524,7 +554,7 @@ export function EventConfigureSources() {
                         </div>
 
                         <div className="space-y-1 md:col-span-2">
-                            <Label htmlFor={`filter-${source.id}`}>Filter</Label>
+                            <Label htmlFor={`filter-${source.id}`}>Status Filter</Label>
                             <Select
                                 value={source.currentFilter}
                                 onValueChange={(value: SourceFilterType) => handleEditableSourceChange(source.id, 'currentFilter', value)}
@@ -540,6 +570,66 @@ export function EventConfigureSources() {
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Submission Type Filter</Label>
+                          {source.submissionTypes ? (
+                              <div className="p-3 border rounded-md space-y-2">
+                                  {Object.entries(source.submissionTypes).map(([id, name]) => {
+                                      const typeId = parseInt(id, 10);
+                                      return (
+                                          <div key={id} className="flex items-center space-x-2">
+                                              <Checkbox
+                                                  id={`type-${source.id}-${id}`}
+                                                  checked={source.currentTypeFilter.includes(typeId)}
+                                                  onCheckedChange={(checked) => {
+                                                      const newFilter = checked
+                                                          ? [...source.currentTypeFilter, typeId]
+                                                          : source.currentTypeFilter.filter(i => i !== typeId);
+                                                      handleEditableSourceChange(source.id, 'currentTypeFilter', [...newFilter].sort((a,b) => a-b));
+                                                  }}
+                                              />
+                                              <Label htmlFor={`type-${source.id}-${id}`} className="font-normal cursor-pointer">{name}</Label>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          ) : (
+                              <div>
+                                  <Input
+                                      id={`type-filter-${source.id}`}
+                                      value={source.currentTypeFilterAsString}
+                                      onChange={(e) => {
+                                        const strValue = e.target.value;
+                                        setEditableSources(produce(draft => {
+                                            const sourceToUpdate = draft.find(s => s.id === source.id);
+                                            if (sourceToUpdate) {
+                                                sourceToUpdate.currentTypeFilterAsString = strValue;
+                                                const numbers = Array.from(new Set(strValue
+                                                    .split(',')
+                                                    .map(s => s.trim())
+                                                    .filter(s => s !== '')
+                                                    .map(s => parseInt(s, 10))
+                                                    .filter(n => !isNaN(n))
+                                                )).sort((a,b) => a-b);
+                                                sourceToUpdate.currentTypeFilter = numbers;
+                                            }
+                                        }));
+                                      }}
+                                      onBlur={() => {
+                                        setEditableSources(produce(draft => {
+                                            const sourceToUpdate = draft.find(s => s.id === source.id);
+                                            if (sourceToUpdate) {
+                                                sourceToUpdate.currentTypeFilterAsString = sourceToUpdate.currentTypeFilter.join(', ');
+                                            }
+                                        }));
+                                      }}
+                                      placeholder="e.g. 1, 2, 5"
+                                  />
+                                  <p className="text-xs text-muted-foreground mt-1">Enter a comma-separated list of submission type IDs.</p>
+                              </div>
+                          )}
                         </div>
 
                         {(urlChanged || eventSlugChanged) && (
@@ -644,7 +734,7 @@ export function EventConfigureSources() {
                 </div>
 
                 <div className="space-y-1">
-                    <Label htmlFor="new-filter">Filter</Label>
+                    <Label htmlFor="new-filter">Status Filter</Label>
                     <Select
                         value={newSourceForm.filter}
                         onValueChange={(value: SourceFilterType) => handleNewSourceFormChange('filter', value)}
@@ -660,6 +750,17 @@ export function EventConfigureSources() {
                             ))}
                         </SelectContent>
                     </Select>
+                </div>
+                
+                <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="new-type-filter">Submission Type Filter (IDs)</Label>
+                    <Input
+                        id="new-type-filter"
+                        value={newSourceForm.typeFilter}
+                        onChange={(e) => handleNewSourceFormChange('typeFilter', e.target.value)}
+                        placeholder="e.g. 1, 2, 5"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Optionally, provide a comma-separated list of submission type IDs to filter by.</p>
                 </div>
 
 

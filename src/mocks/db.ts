@@ -1,4 +1,3 @@
-// src/mocks/db.ts
 import { v4 as uuidv4 } from 'uuid';
 import type { MockDB } from './types';
 import { getTimestamp, DEFAULT_SOURCE_FILTER } from './types'; // ++ Import DEFAULT_SOURCE_FILTER ++
@@ -37,8 +36,28 @@ export const db: MockDB = {
         },
       },
       sources: { 
-        "pretalx-main": { autoupdate: true, url: "http://example.com/source1", eventSlug: "pretalx-slug-1", interval: 1800, filter: DEFAULT_SOURCE_FILTER }, // ++ Added filter ++
-        "frab-archive": { autoupdate: false, url: "http://example.com/source2", eventSlug: "frab-slug-2", interval: 300, filter: "confirmed" }, // ++ Added filter ++
+        "pretalx-main": { 
+          autoupdate: true, 
+          url: "http://example.com/source1", 
+          eventSlug: "pretalx-slug-1", 
+          interval: 1800, 
+          filter: DEFAULT_SOURCE_FILTER,
+          submissionTypes: {
+            "1": "short talk",
+            "2": "long talk",
+            "3": "workshop",
+          },
+          typeFilter: [1, 3],
+        },
+        "frab-archive": { 
+          autoupdate: false, 
+          url: "http://example.com/source2", 
+          eventSlug: "frab-slug-2", 
+          interval: 300, 
+          filter: "confirmed",
+          submissionTypes: null,
+          typeFilter: [101, 205],
+        },
       },
       ratings: {
         [sub1IdEvent1]: { up: 100, down: 5, views: 200, expanded: 50 },
