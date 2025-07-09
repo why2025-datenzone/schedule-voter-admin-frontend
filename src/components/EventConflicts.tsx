@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useConferenceStore } from '@/store/conferenceStore';
-import { useConflicts, useSubmissions } from '@/api/apiService';
+import { scheduleSourceUpdate, useConflicts, useSources, useSubmissions } from '@/api/apiService';
 import { ConflictType, SubmissionDetail } from '@/api/types';
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -32,6 +32,7 @@ import {
   Header,
   Column,
 } from "@tanstack/react-table";
+import { toast } from 'sonner';
 
 interface ConflictTableRow {
   id: string;
@@ -121,13 +122,26 @@ export function Conflicts() {
         refetch: refetchSubmissions,
     } = useSubmissions(eventSlug, { enabled: !!eventSlug });
 
+    const { data: sourcesData, isLoading: isLoadingSources } = useSources(eventSlug!, { enabled: !!eventSlug });
+
     const handleRefresh = async () => {
         if (!eventSlug || isRefreshing) return;
         setIsRefreshing(true);
         try {
+            if (sourcesData && Object.keys(sourcesData).length > 0) {
+                const sourceIds = Object.keys(sourcesData);
+                toast.info(`Scheduling updates for ${sourceIds.length} source(s)...`);
+                const sourceUpdatePromises = sourceIds.map(sourceId =>
+                    scheduleSourceUpdate(eventSlug, sourceId)
+                );
+                await Promise.all(sourceUpdatePromises);
+                toast.success("All sources have been scheduled for an update.");
+            }
             await Promise.all([refetchConflicts(), refetchSubmissions()]);
-        } catch (err) {
-            console.error("Error refreshing conflicts data:", err);
+         } catch (err) {
+            console.error("Error during refresh process:", err);
+            const message = err instanceof Error ? err.message : "An unknown error occurred";
+            toast.error(`Refresh failed: ${message}`);
         } finally {
             setIsRefreshing(false);
         }
@@ -264,8 +278,8 @@ export function Conflicts() {
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={handleRefresh}
-                        disabled={isRefreshing || !eventSlug || isLoadingConflicts || isLoadingSubmissions}
+                        onClick={handleRefresh} // This is the refresh button
+                        disabled={isRefreshing || !eventSlug || isLoadingConflicts || isLoadingSubmissions || isLoadingSources}
                         title="Refresh conflicts"
                         className="shrink-0"
                     >

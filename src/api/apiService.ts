@@ -135,6 +135,17 @@ export async function deleteSource(
   return handleResponse<void>(response);
 }
 
+export async function scheduleSourceUpdate(
+  eventSlug: string,
+  sourceId: string
+): Promise<void> {
+  const API_BASE_URL = getApiBaseUrl();
+  const response = await fetchWithAuth(`${API_BASE_URL}/sources/${eventSlug}/${sourceId}/scheduleupdate`, {
+    method: 'GET',
+  });
+  return handleResponse<void>(response);
+}
+
 export async function updateEventUserPermissions(
   eventSlug: string,
   userId: string,

@@ -433,6 +433,24 @@ export const handlers = [
     return HttpResponse.json(response);
   }),
 
+  http.get('/api/sources/:eventSlug/:sourceId/scheduleupdate', ({ params }) => {
+    const eventOrError = getEventOr404(params.eventSlug, db);
+    if (eventOrError instanceof HttpResponse) return eventOrError;
+    const event = eventOrError;
+
+    const { sourceId } = params;
+
+    if (!event.sources || !event.sources[String(sourceId)]) {
+      return HttpResponse.json({ message: `Source with ID "${String(sourceId)}" not found in event "${event.slug}".` }, { status: 404 });
+    }
+
+    console.log(`[MSW] Mock schedule update triggered for event "${event.slug}", source "${String(sourceId)}"`);
+
+    // This endpoint likely just triggers a background job and returns success.
+    // 204 No Content is a good response for this.
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   // ++ New mock for OIDC code exchange ++
   http.post('/api/exchange', async ({ request }) => {
     const payload = await request.json() as OidcExchangePayload;
