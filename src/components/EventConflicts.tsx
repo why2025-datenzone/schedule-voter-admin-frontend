@@ -383,9 +383,10 @@ export function Conflicts() {
                 <SimilarSubmissionsDialog
                     open={!!selectedSubmissionForDialog}
                     onOpenChange={(isOpen) => !isOpen && setSelectedSubmissionId(null)}
-                    eventSlug={eventSlug!}
+                    eventSlug={eventSlug}
                     submission={selectedSubmissionForDialog}
                     allSubmissions={submissionsMap}
+                    initialMetric={selectedConflictType}
                 />
             )}
         </div>

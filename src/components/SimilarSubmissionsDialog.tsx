@@ -13,10 +13,11 @@ interface SimilarSubmissionsDialogProps {
   eventSlug: string;
   submission: SubmissionDetail & { id: string };
   allSubmissions: Record<string, SubmissionDetail>;
+  initialMetric?: ConflictType;
 }
 
-export function SimilarSubmissionsDialog({ open, onOpenChange, eventSlug, submission, allSubmissions }: SimilarSubmissionsDialogProps) {
-  const [selectedMetric, setSelectedMetric] = useState<ConflictType>('expanded');
+export function SimilarSubmissionsDialog({ open, onOpenChange, eventSlug, submission, allSubmissions, initialMetric }: Readonly<SimilarSubmissionsDialogProps>) {
+  const [selectedMetric, setSelectedMetric] = useState<ConflictType>(initialMetric ?? 'expanded');
   const [count, setCount] = useState<number>(10);
 
   const { data: similarSubmissions, isLoading, isError, error } = useSimilarSubmissions(
