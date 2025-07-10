@@ -28,6 +28,7 @@ const SubmissionCard = ({ submission, onTitleClick }: { submission: SubmissionDe
                     <div className="mt-2 text-xs text-muted-foreground">
                         <p>Start: {new Date(submission.time.start*1000).toLocaleString()}</p>
                         <p>End: {new Date(submission.time.end*1000).toLocaleString()}</p>
+                        <p>Room: {submission.time.room || "-"}</p>
                     </div>
                 )}
             </CardContent>

@@ -354,6 +354,23 @@ export function Votes() {
       size: 220,
       minSize: 150,
     },
+    {
+      id: "room",
+      accessorFn: row => row.time?.room ? row.time.room : null,
+      // accessorKey: "room",
+      header: ({ column }) => createSortableHeader(column, "Room"),
+      cell: ({ row }) => {
+        const time = row.original.time as ApiSubmissionTime;
+        if (!time?.room) return <div className="text-sm text-muted-foreground whitespace-nowrap text-left">-</div>;
+        return (
+          <div className="text-sm text-muted-foreground whitespace-nowrap text-left">{time.room}</div>
+        );
+      },
+      enableSorting: true,
+      sortingFn: 'alphanumeric',
+      size: 180,
+      minSize: 60,
+    },
   ], []);
 
   const submissionData: SubmissionRowData[] = useMemo(() => {
@@ -426,6 +443,7 @@ export function Votes() {
     title: "Title",
     lastupdate: "Last Updated",
     time: "Scheduled Time",
+    room: "Room",
     up: "Up Votes",
     down: "Down Votes",
     views: "Views",

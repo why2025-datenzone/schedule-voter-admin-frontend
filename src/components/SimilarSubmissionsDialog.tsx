@@ -42,6 +42,11 @@ export function SimilarSubmissionsDialog({ open, onOpenChange, eventSlug, submis
         <DialogHeader>
           <DialogTitle>Submissions similar to "{submission.title}"</DialogTitle>
           <DialogDescription>
+            {submission.time && (
+              <>
+              <b>Start</b>: {new Date(submission.time.start*1000).toLocaleString()}, <b>End</b>: {new Date(submission.time.end*1000).toLocaleString()}, <b>Room</b>: {submission.time.room || "-"}<br />
+              </>
+            )}
             Showing top {count} most similar submissions based on the "{selectedMetric}" metric.
           </DialogDescription>
         </DialogHeader>

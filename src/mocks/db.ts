@@ -26,7 +26,7 @@ export const db: MockDB = {
           lastupdate: getTimestamp() - 3600,
           title: "The Future of AI",
           abstract: "A talk about AI...",
-          time: { start: getTimestamp() + 86400, end: getTimestamp() + 86400 + 3600 },
+          time: { start: getTimestamp() + 86400, end: getTimestamp() + 86400 + 3600, room: "Foo" },
         },
         [sub2IdEvent1]: {
           code: "TALK002",

@@ -32,6 +32,7 @@ export interface EventOverviewResponse {
 export interface SubmissionTime {
   start: number; // Timestamp string
   end: number;   // Timestamp string
+  room: string | null;
 }
 
 export interface SubmissionDetail {

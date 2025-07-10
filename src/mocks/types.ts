@@ -35,6 +35,7 @@ export interface OverviewResponse {
 export interface SubmissionTime {
   start: number; // Unix timestamp
   end: number;   // Unix timestamp
+  room: string | null;
 }
 
 export interface SubmissionItem {
